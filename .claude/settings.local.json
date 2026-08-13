@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -oE '^\\\\.[a-zA-Z0-9\\\\\\\\:_-]+' \"C:/Users/felip/.gemini/antigravity/scratch/peitada_futevolei/src/index.css\" \"C:/Users/felip/.gemini/antigravity/scratch/peitada_futevolei/src/App.css\")",
+      "PowerShell(npx oxlint 2>&1)",
+      "Bash(grep -o \"worldLandmarks[^;]\\\\{0,60\\\\}\" vision_bundle.mjs)",
+      "Bash(grep -o \".\\\\{200\\\\}worldLandmarks=\\\\[\\\\],t\\\\.segmentationMasks=void 0}.\\\\{400\\\\}\" vision_bundle.mjs)",
+      "mcp__Claude_in_Chrome__navigate",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:5173/\" -UseBasicParsing -TimeoutSec 5; \"HTTP $\\($r.StatusCode\\) - servidor respondendo\" } catch { \"SEM RESPOSTA: $\\($_.Exception.Message\\)\" })",
+      "Bash(rm -f src/components/Pose3DViewer.jsx)",
+      "Bash(sed -i '/peakMetric = measured\\\\.metric;/d' src/utils/peitadaDetector.js)",
+      "mcp__Claude_Preview__preview_start",
+      "PowerShell(Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; Start-Sleep -Milliseconds 800; if \\(Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue\\) { \"ainda ocupada\" } else { \"porta 5173 livre\" })"
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head><title>Video Test</title></head>
+<body style="background:#111;color:white;font-family:sans-serif;padding:40px">
+<h2>Test 1: Static Image from extracted frames</h2>
+<img id="testImg" src="/videos/lv_0_frames/frame_000.jpg" style="max-width:300px;border:2px solid cyan" 
+     onerror="document.getElementById('imgStatus').textContent='❌ IMAGE FAILED TO LOAD'" 
+     onload="document.getElementById('imgStatus').textContent='✅ IMAGE LOADED OK'" />
+<p id="imgStatus">Loading...</p>
+
+<h2>Test 2: Re-encoded MP4 (OpenCV mp4v)</h2>
+<video id="v1" src="/videos/lv_0_20260729175509_web.mp4" controls muted playsinline style="max-width:300px;border:2px solid orange"></video>
+<p id="v1Status">Loading...</p>
+<script>
+var v1=document.getElementById('v1');
+v1.onloadeddata=function(){document.getElementById('v1Status').textContent='✅ VIDEO LOADED: '+v1.videoWidth+'x'+v1.videoHeight};
+v1.onerror=function(e){document.getElementById('v1Status').textContent='❌ VIDEO ERROR: '+JSON.stringify(v1.error)};
+</script>
+
+<h2>Test 3: Original MP4 from phone</h2>
+<video id="v2" src="/videos/lv_0_20260729175509.mp4" controls muted playsinline style="max-width:300px;border:2px solid lime"></video>
+<p id="v2Status">Loading...</p>
+<script>
+var v2=document.getElementById('v2');
+v2.onloadeddata=function(){document.getElementById('v2Status').textContent='✅ VIDEO LOADED: '+v2.videoWidth+'x'+v2.videoHeight};
+v2.onerror=function(e){document.getElementById('v2Status').textContent='❌ VIDEO ERROR: '+JSON.stringify(v2.error)};
+</script>
+
+<h2>Test 4: User upload test</h2>
+<input type="file" accept="video/*" id="fileInput" />
+<video id="v3" controls muted playsinline style="max-width:300px;border:2px solid magenta;display:none"></video>
+<p id="v3Status">Select a video file...</p>
+<script>
+document.getElementById('fileInput').onchange=function(e){
+  var f=e.target.files[0]; if(!f)return;
+  var v3=document.getElementById('v3');
+  v3.src=URL.createObjectURL(f);
+  v3.style.display='block';
+  v3.onloadeddata=function(){document.getElementById('v3Status').textContent='✅ UPLOAD VIDEO LOADED: '+v3.videoWidth+'x'+v3.videoHeight+' ('+f.name+')'};
+  v3.onerror=function(){document.getElementById('v3Status').textContent='❌ UPLOAD VIDEO ERROR: '+JSON.stringify(v3.error)};
+};
+</script>
+</body>
+</html>

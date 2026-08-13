@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- SEO & Web App Meta Tags -->
+    <title>Peitada • Análise técnica do movimento no futevôlei</title>
+    <meta name="description" content="Análise biomecânica da peitada no futevôlei. Envie um vídeo e receba medidas precisas de arco de tronco, flexão de joelho, simetria de braços e avanço de quadril." />
+    <meta name="theme-color" content="#F7F3EB" />
+
+    <!-- PWA Web App Capabilities -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+
+    <!-- Resolve the stored theme before first paint, so the page never flashes
+         the wrong background. Mirrors getInitialTheme() in utils/theme.js. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('peitada-theme');
+          var theme = (saved === 'light' || saved === 'dark') ? saved
+            : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme', theme);
+          document.querySelector('meta[name="theme-color"]')
+            .setAttribute('content', theme === 'dark' ? '#0F1419' : '#F7F3EB');
+        } catch (e) {}
+      })();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
