@@ -1,4 +1,4 @@
-# ⚡ Peitada Futevôlei — Análise Biomecânica em Tempo Real
+# ⚡ Footvolley Peitada — Real-Time Biomechanical Analysis
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Online-brightgreen?style=for-the-badge&logo=github)](https://meneguinha.github.io/peitada_futevolei/)
 [![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)](https://react.dev/)
@@ -6,214 +6,214 @@
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Vision%203D-FF6F00?style=for-the-badge&logo=google)](https://developers.google.com/mediapipe)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-Aplicação web progressiva para **análise biomecânica automatizada em tempo real de ataques de peito ("Peitada") no futevôlei**. Utiliza Inteligência Artificial, estimativa de pose 3D em metros e algoritmos geométricos para avaliar a execução do movimento, identificar falhas técnicas e recomendar exercícios corretivos diretamente no navegador, sem necessidade de servidores externos ou upload de dados.
+A progressive web application for **automated, real-time biomechanical analysis of chest attacks ("Peitada") in footvolley**. Powered by Artificial Intelligence, 3D metric pose estimation, and geometric computer vision algorithms to evaluate motion execution, detect technical flaws, and recommend corrective drills directly in the browser—with no backend server or cloud video uploads required.
 
 ---
 
-## 🌐 Acesse a Aplicação Online
+## 🌐 Live Application Link
 
 - 🚀 **GitHub Pages App**: [https://meneguinha.github.io/peitada_futevolei/](https://meneguinha.github.io/peitada_futevolei/)
-- 💻 **Repositório GitHub**: [https://github.com/meneguinha/peitada_futevolei](https://github.com/meneguinha/peitada_futevolei)
+- 💻 **GitHub Repository**: [https://github.com/meneguinha/peitada_futevolei](https://github.com/meneguinha/peitada_futevolei)
 
 ---
 
-## 📌 Sobre o Projeto
+## 📌 Project Overview
 
-A **"Peitada"** é um dos movimentos de ataque mais plásticos e eficientes do futevôlei. Uma execução perfeita exige sincronia biomecânica entre:
-1. **Flexão prévia de joelhos** para impulsão (efeito mola);
-2. **Arqueamento do tronco** para posicionamento abaixo da bola;
-3. **Avanço explosivo do quadril** (hip thrust) no momento do impacto para gerar potência;
-4. **Abertura e simetria dos braços** para equilíbrio aéreo e direcionamento.
+The **"Peitada"** (chest strike) is one of the most athletic and effective offensive moves in footvolley. Perfect execution requires biomechanical coordination across four key areas:
+1. **Pre-impact knee flexion** to act as a spring for vertical leap;
+2. **Torso arching** to position the upper chest directly beneath the ball;
+3. **Explosive hip thrust** at contact to transfer momentum into the hit;
+4. **Symmetric arm opening** for mid-air balance and directional control.
 
-Esta aplicação resolve o desafio de avaliar objetivamente esse movimento. Ao analisar vídeos em câmera lenta ou em velocidade normal, o sistema identifica automaticamente o exato momento de cada peitada em uma partida ou treino, calcula os ângulos tridimensionais do atleta e gera uma **nota biomecânica (0 a 100)** acompanhada de relatórios e dicas técnicas.
+This application objectively measures and scores this movement. By analyzing full-speed or slow-motion video clips, the system automatically detects each chest attack event, calculates the athlete's 3D joint angles at the peak arch, and generates a **biomechanical score (0–100)** along with actionable technical feedback.
 
 ---
 
-## ✨ Principais Funcionalidades
+## ✨ Key Features
 
-- 🎯 **Detecção Automática via Máquina de Estados 3D**:
-  - Identifica automaticamente os eventos de peitada sem necessidade de marcação manual, operando nas fases:
+- 🎯 **Automated 3D State Machine Event Detection**:
+  - Automatically identifies chest attack events without manual tagging via a finite state machine:
     $$\text{IDLE} \rightarrow \text{PREPARING} \rightarrow \text{ARCHING} \rightarrow \text{IMPACT} \rightarrow \text{LANDING} \rightarrow \text{IDLE}$$
-  - Filtro contra falso-positivos e prevenção de contagem duplicada em rallies rápidos.
+  - Robust false-positive filtering and deduplication during rapid rallies.
 
-- 📐 **Análise Biomecânica 3D em Metros (MediaPipe Pose)**:
-  - Utiliza coordenadas métricas tridimensionais (*World Landmarks* com origem no quadril) fornecidas pelo MediaPipe Pose.
-  - Imune à distorção de aspecto do vídeo (como vídeos 9:16 de celular vs. 16:9), inclinação da câmera ou distância do atleta.
+- 📐 **Metric 3D Biomechanical Analysis (MediaPipe Pose)**:
+  - Uses 3D metric coordinates (*World Landmarks* in meters, centered between the hips) provided by MediaPipe Pose.
+  - Immune to video aspect ratio distortion (e.g., 9:16 vertical smartphone videos vs. 16:9 widescreen), camera tilt, or distance to the athlete.
 
-- ⚽ **Rastreamento Integrado da Bola (Ball Tracker)**:
-  - Algoritmo de visão computacional e ajuste de trajetória de bola integrado ao ciclo de vida do movimento para validar o ponto exato do impacto.
+- ⚽ **Integrated Computer Vision Ball Tracker**:
+  - Tracks ball trajectory and fits parabola curves to validate the exact moment and location of contact.
 
-- 📊 **Relatório Biomecânico Instantâneo**:
-  - Diagnóstico detalhado mostrando a nota de cada componente (joelhos, tronco, braços, quadril) e o resumo geral do atleta.
+- 📊 **Instant Biomechanical Diagnostic Report**:
+  - Breakdown of individual sub-scores (knees, torso, arms, hips) alongside an overall technique grade.
 
-- 💡 **Recomendações e Drills de Treino Personalizados**:
-  - Sugestões inteligentes de exercícios corretivos baseadas nos erros específicos detectados no vídeo (ex: perna dura, falta de projeção de quadril, arqueamento insuficiente ou excessivo).
+- 💡 **Personalized Drill Recommendations**:
+  - Recommends specific corrective drills based on detected technical flaws (e.g., stiff legs, insufficient hip extension, over/under-arching).
 
-- 🎥 **Reprodutor de Vídeo Técnico Avançado**:
-  - Reprodução em câmera lenta configurável (**0.25x**, **0.5x**, **1.0x**).
-  - Suporte a navegação frame a frame e salto direto para os picos de cada peitada registrada.
-  - Overlay gráfico do esqueleto 3D com destaque de cores nos ângulos chave (pode ser ativado/desativado).
-  - Servidor local dev com suporte a requisições **HTTP 206 Byte-Range** para vídeos MP4 de alta definição.
+- 🎥 **Technical Video Player**:
+  - Configurable slow-motion playback (**0.25x**, **0.5x**, **1.0x**).
+  - Frame-by-frame navigation and instant jump to peak impact keyframes.
+  - Toggleable 3D biomechanical skeleton overlay with dynamic color coding.
+  - Custom Vite dev server middleware supporting **HTTP 206 Byte-Range** requests for smooth high-res MP4 streaming.
 
-- 🔒 **Privacidade Total & Execução Client-Side**:
-  - Todo o processamento de visão computacional roda 100% no navegador do usuário via WebGL e WebAssembly. Nenhum frame de vídeo é enviado para servidores.
+- 🔒 **100% Client-Side Privacy**:
+  - All pose estimation and video processing runs locally in the browser via WebGL and WebAssembly. No video data ever leaves your device.
 
-- 🔔 **Feedback Sonoro & Efeitos Visuais**:
-  - Efeitos sonoros sintetizados em tempo real via **Web Audio API** para sinalizar momentos de impacto e notas.
-  - Explosão de confetes (`canvas-confetti`) em execuções de alta performance (nota $\ge 85$).
+- 🔔 **Synthesized Audio & Visual Feedback**:
+  - Real-time audio cues synthesized via the **Web Audio API** for impacts and scores.
+  - Celebratory confetti effects (`canvas-confetti`) for excellent performance (score $\ge 85$).
 
-- 🌓 **Tema Claro / Escuro (Light & Dark Mode)**:
-  - Interface responsiva e elegante com alternância instantânea de tema visual.
+- 🌓 **Light & Dark Mode Support**:
+  - Responsive design system with seamless dynamic theme toggling.
 
 ---
 
-## 📐 Modelo Biomecânico & Métricas Medidas
+## 📐 Biomechanical Model & Measured Metrics
 
-No momento do **pico do arqueamento**, a aplicação analisa 33 pontos corporais e avalia 4 métricas fundamentais:
+At the **peak arching instant**, the application tracks 33 body keypoints to measure 4 primary biomechanical metrics:
 
-| Métrica | Faixa Ideal / Alvo | Peso no Score | Descrição Biomecânica |
+| Metric | Ideal Range / Target | Score Weight | Biomechanical Description |
 | :--- | :---: | :---: | :--- |
-| 🔙 **Arco do Tronco** | **20° a 40°** | **30%** | Ângulo entre a linha do tronco (quadril $\rightarrow$ ombros) e a linha vertical. Valores abaixo de 18° no pico não qualificam o movimento como peitada. |
-| 🦵 **Flexão do Joelho** | **120° a 150°** | **30%** | Ângulo do joelho (quadril $\rightarrow$ joelho $\rightarrow$ tornozelo). Ângulos acima de 165° indicam "perna dura" (perda de impulsão); abaixo de 100° indicam agachamento excessivo (perda de tempo de bola). |
-| 💪 **Simetria dos Braços** | **Diferença < 15°** | **20%** | Comparação angular do cotovelo esquerdo vs. direito. Braços abertos simetricamente garantem estabilidade no ar. |
-| 🏋️ **Avanço do Quadril (Hip Thrust)** | **> 0.07** | **20%** | Projeção do quadril à frente dos tornozelos no eixo de ataque, medida como proporção da altura corporal do atleta (independente de zoom/distância da câmera). |
+| 🔙 **Torso Arch** | **20° to 40°** | **30%** | Backward tilt angle between the torso line (hip $\rightarrow$ shoulders) and vertical. Peak tilt $< 18°$ is disqualified as a non-peitada. |
+| 🦵 **Knee Flexion** | **120° to 150°** | **30%** | Knee joint angle (hip $\rightarrow$ knee $\rightarrow$ ankle). Angles $> 165°$ indicate "stiff legs" (loss of spring); $< 100°$ indicates over-squatting (loss of timing). |
+| 💪 **Arm Symmetry** | **Difference < 15°** | **20%** | Angular comparison between left and right elbow. Symmetric extension ensures stability in air. |
+| 🏋️ **Hip Thrust** | **> 0.07** | **20%** | Forward projection of hips relative to ankles along the facing axis, normalized as a fraction of athlete height (zoom/distance invariant). |
 
 ---
 
-## 📂 Arquitetura do Projeto
+## 📂 Project Architecture
 
 ```text
 peitada_futevolei/
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml          # Workflow de CI/CD para build e deploy no GitHub Pages
-├── public/                     # Arquivos estáticos e vídeos de demonstração
+│       └── deploy.yml          # GitHub Actions CI/CD deployment workflow
+├── public/                     # Static assets and sample video files
 │   ├── sample_peitada.mp4
 │   └── favicon.svg
 ├── src/
-│   ├── assets/                 # Recursos visuais e mídias
-│   ├── components/             # Componentes React da Interface
-│   │   ├── BiomechanicsReport.jsx   # Relatório e notas biomecânicas
-│   │   ├── DrillRecommendations.jsx # Recomendações de treinos corretivos
-│   │   ├── Header.jsx               # Cabeçalho, botões de ação e seletor de tema
-│   │   ├── HowItWorks.jsx           # Explicação visual e interativa das métricas
-│   │   ├── Logo.jsx                 # Logotipo da aplicação
-│   │   ├── MetricsBadge.jsx         # Chips de métricas em tempo real
-│   │   ├── PhaseTimeline.jsx        # Linha do tempo dos eventos detectados
-│   │   ├── PoseCanvasOverlay.jsx    # Canvas 2D/3D sobreposto ao vídeo
-│   │   ├── VideoAnalyzer.jsx        # Player de vídeo e gerenciador do loop de detecção
-│   │   └── VideoUploader.jsx        # Dropzone e seletor de vídeos de exemplo
-│   ├── utils/                  # Motores de IA, Matemática e Biomecânica
-│   │   ├── angleDetector.js         # Cálculos de ângulos anatômicos
-│   │   ├── ballTracker.js           # Rastreamento de bola por visão computacional
-│   │   ├── biomechanicsEngine.js    # Motor de análise biomecânica integrada
-│   │   ├── figureGeometry.js        # Geometria do modelo ilustrativo
-│   │   ├── geometryMath.js          # Matemática vetorial 3D e ângulos no espaço
-│   │   ├── peitadaDetector.js       # Detector de peitada e máquina de estados
-│   │   ├── poseDetector.js          # Inicializador e chamadas do MediaPipe Pose
-│   │   ├── sampleData.js            # Dados e configurações de vídeos de exemplo
-│   │   └── theme.js                 # Gerenciador de tema visual (light/dark)
-│   ├── App.jsx                 # Componente raiz da aplicação
-│   ├── App.css                 # Estilos específicos dos componentes
-│   ├── index.css               # Design System, variáveis HSL e resets CSS
-│   └── main.jsx                # Ponto de entrada do React 19
+│   ├── assets/                 # Brand assets and visual media
+│   ├── components/             # React UI Components
+│   │   ├── BiomechanicsReport.jsx   # Scorecard and detailed diagnostic breakdown
+│   │   ├── DrillRecommendations.jsx # Corrective training drill suggestions
+│   │   ├── Header.jsx               # Navigation bar, reset triggers, and theme switch
+│   │   ├── HowItWorks.jsx           # Interactive biomechanical guide and stick figure diagram
+│   │   ├── Logo.jsx                 # Application branding logo component
+│   │   ├── MetricsBadge.jsx         # Real-time metric pills badge
+│   │   ├── PhaseTimeline.jsx        # Detected peitada event timeline
+│   │   ├── PoseCanvasOverlay.jsx    # 2D/3D skeleton canvas overlaid on video
+│   │   ├── VideoAnalyzer.jsx        # Main video player and detection loop coordinator
+│   │   └── VideoUploader.jsx        # Video dropzone and preloaded sample selector
+│   ├── utils/                  # AI Engines, Mathematics, and Biomechanical Logic
+│   │   ├── angleDetector.js         # Anatomical angle calculation utilities
+│   │   ├── ballTracker.js           # Computer vision ball trajectory tracking
+│   │   ├── biomechanicsEngine.js    # Integrated biomechanical scoring engine
+│   │   ├── figureGeometry.js        # Synthetic diagram geometry solver
+│   │   ├── geometryMath.js          # 3D vector math and spatial angles
+│   │   ├── peitadaDetector.js       # Finite state machine and peitada detector
+│   │   ├── poseDetector.js          # MediaPipe Pose initialization and inference
+│   │   ├── sampleData.js            # Sample video metadata configuration
+│   │   └── theme.js                 # Dynamic color theme state management (light/dark)
+│   ├── App.jsx                 # Root React App component
+│   ├── App.css                 # Component-specific styles
+│   ├── index.css               # Design System, HSL variables, and global CSS reset
+│   └── main.jsx                # React 19 entry point
 ├── test/
-│   └── peitadaDetector.test.mjs # Suíte de testes unitários automatizados da biomecânica
-├── .oxlintrc.json              # Configurações do Linter Oxlint
-├── index.html                  # HTML principal da aplicação
-├── package.json                # Dependências do projeto e scripts
-└── vite.config.js              # Configurações do Vite (base path /peitada_futevolei/)
+│   └── peitadaDetector.test.mjs # Automated unit test suite for state machine logic
+├── .oxlintrc.json              # Oxlint linter configuration
+├── index.html                  # Main application HTML template
+├── package.json                # Project dependencies and script declarations
+└── vite.config.js              # Vite configuration (base path /peitada_futevolei/)
 ```
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 🛠️ Tech Stack
 
 - **Core Framework**: [React 19](https://react.dev/) + [Vite 8](https://vitejs.dev/)
-- **Visão Computacional & IA**: [@mediapipe/tasks-vision](https://www.npmjs.com/package/@mediapipe/tasks-vision) & [@tensorflow/tfjs](https://www.tensorflow.org/js) (WebGL Backend)
-- **Estilização**: Vanilla CSS com variáveis dinâmicas em HSL e Design System customizado (sem frameworks CSS pesados)
-- **Ícones**: [Lucide React](https://lucide.dev/)
-- **Animação & Efeitos**: `canvas-confetti` & Web Audio API (Síntese de áudio nativa)
-- **Testes & Qualidade**: Node.js ESM Test Runner & [Oxlint](https://oxc.rs/)
-- **Deploy & Hospedagem**: GitHub Actions & GitHub Pages
+- **Computer Vision & AI**: [@mediapipe/tasks-vision](https://www.npmjs.com/package/@mediapipe/tasks-vision) & [@tensorflow/tfjs](https://www.tensorflow.org/js) (WebGL Backend)
+- **Styling**: Vanilla CSS with dynamic HSL color variables and custom Design System (no heavy utility libraries)
+- **Iconography**: [Lucide React](https://lucide.dev/)
+- **Animations & Sound**: `canvas-confetti` & Web Audio API (Native synthesized audio)
+- **Testing & Code Quality**: Node.js ESM Test Runner & [Oxlint](https://oxc.rs/)
+- **Deployment & Hosting**: GitHub Actions & GitHub Pages
 
 ---
 
-## ⚡ Como Executar Localmente
+## ⚡ Local Setup & Development
 
-### Pré-requisitos
-- **Node.js**: Versão 18 ou superior instalada.
-- **npm**: Versão 9 ou superior.
+### Prerequisites
+- **Node.js**: v18.0.0 or higher.
+- **npm**: v9.0.0 or higher.
 
-### Passo a Passo
+### Step-by-Step Guide
 
-1. **Clonar o repositório:**
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/meneguinha/peitada_futevolei.git
    cd peitada_futevolei
    ```
 
-2. **Instalar as dependências:**
+2. **Install dependencies:**
    ```bash
    npm install
    ```
 
-3. **Iniciar o servidor de desenvolvimento:**
+3. **Start the development server:**
    ```bash
    npm run dev
    ```
-   Acesse a aplicação no navegador pelo endereço exibido no terminal (geralmente `http://localhost:5173/peitada_futevolei/`).
+   Open your browser at the URL shown in the terminal (typically `http://localhost:5173/peitada_futevolei/`).
 
-4. **Executar a suíte de testes unitários:**
+4. **Run automated unit tests:**
    ```bash
    npm test
    ```
 
-5. **Verificar a sintaxe e linter:**
+5. **Run the linter:**
    ```bash
    npm run lint
    ```
 
-6. **Gerar a versão de produção (Build):**
+6. **Build for production:**
    ```bash
    npm run build
    ```
 
 ---
 
-## 🧪 Suíte de Testes Automatizados
+## 🧪 Automated Test Suite
 
-O projeto conta com uma suíte de testes rigorosa em `test/peitadaDetector.test.mjs`, que simula atletas virtuais com diferentes características antropométricas, variações no ângulo da câmera (*yaw*), movimentos corretos e movimentos incorretos.
+The project includes an automated testing suite in `test/peitadaDetector.test.mjs` that generates synthetic 3D poses to evaluate biomechanical edge cases, camera yaw rotation tolerances, valid movements, and flaw detection.
 
-Para executar os testes:
+Run all tests via:
 ```bash
 npm test
 ```
 
-Os testes cobrem:
-- Detecção precisa de arcos de tronco e ângulos de joelho sintetizados geometricamente.
-- Tolerância a variações de rotação da câmera (perspectiva em perfil 90° vs. frontal 0°).
-- Validação das regresses biomecânicas e pontuação da máquina de estados.
+Key test scenarios include:
+- Verification of torso arch and knee flexion angle extraction.
+- Camera perspective yaw robustness ($0°$ front view, $90°$ profile, $180°$ back view).
+- State machine event deduplication and fast-rally tracking.
 
 ---
 
-## 🚀 Deployment Automático (GitHub Pages)
+## 🚀 Continuous Deployment (GitHub Pages)
 
-O deploy é configurado automaticamente via **GitHub Actions** em cada push para o branch `main`.
+Deployment is fully automated using **GitHub Actions** upon pushing to the `main` branch.
 
-- Arquivo de workflow: `.github/workflows/deploy.yml`
-- Base URL no `vite.config.js`: `base: '/peitada_futevolei/'`
-- Link de Acesso Público: **[https://meneguinha.github.io/peitada_futevolei/](https://meneguinha.github.io/peitada_futevolei/)**
-
----
-
-## 📄 Licença
-
-Este projeto está licenciado sob a Licença **MIT**. Veja o arquivo `LICENSE` para mais detalhes.
+- Action Workflow: `.github/workflows/deploy.yml`
+- Base Path in `vite.config.js`: `base: '/peitada_futevolei/'`
+- Public Web URL: **[https://meneguinha.github.io/peitada_futevolei/](https://meneguinha.github.io/peitada_futevolei/)**
 
 ---
 
-<p center>
-  Desenvolvido com ⚽ e IA para a comunidade de <strong>Futevôlei</strong>.
+## 📄 License
+
+This project is licensed under the **MIT License**. See the `LICENSE` file for details.
+
+---
+
+<p align="center">
+  Crafted with ⚽ & AI for the global <strong>Footvolley</strong> community.
 </p>
 
