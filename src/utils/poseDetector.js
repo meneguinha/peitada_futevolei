@@ -3,7 +3,6 @@
  * Real-time MediaPipe Pose Landmarker for video analysis.
  * Detects 33 body landmarks per frame using the browser GPU.
  */
-import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 
 let poseLandmarker = null;
 let isInitializing = false;
@@ -21,6 +20,7 @@ export async function initPoseDetector() {
   initPromise = (async () => {
     try {
       console.log('[PoseDetector] Loading MediaPipe WASM runtime...');
+      const { PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
       const vision = await FilesetResolver.forVisionTasks(
         'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
       );
