@@ -49,7 +49,7 @@ function videoRangePlugin() {
 }
 
 export default defineConfig({
-  base: './',
+  base: '/peitada_futevolei/',
   plugins: [react(), videoRangePlugin()],
   server: {
     host: '0.0.0.0',
