@@ -152,6 +152,13 @@ h3 { font-size: 19px; }
 .status-warn    { border-left-color: var(--warning); }
 .status-error   { border-left-color: var(--danger); }
 
+.card-peitada-active {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent), var(--shadow-float) !important;
+  transform: translateY(-2px) scale(1.015);
+  animation: peitadaPulse 1.8s infinite ease-in-out;
+}
+
 /* ---------- Buttons ---------- */
 
 .btn-primary, .btn-accent, .btn-secondary {
@@ -362,6 +369,11 @@ h3 { font-size: 19px; }
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes peitadaPulse {
+  0% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent), var(--shadow-float); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 15%, transparent), var(--shadow-float); }
+  100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent), var(--shadow-float); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

@@ -19,6 +19,9 @@
 
 // Explicit extension so this module also loads under plain Node (see test/).
 import { calculateAngle3D } from './geometryMath.js';
+import {
+  BANDS, SIGMA, rampScore, scoreUncertainty, combineUncertainty, sessionScore, weightedScore
+} from './measurementUncertainty.js';
 
 // Shoulder-to-ankle length of a typical footvolley athlete, used to express
 // distances in centimetres when we only have unit-less fallback landmarks.
@@ -130,8 +133,9 @@ const DEDUPE_MS = 250;
 // fast rally's peaks intact; longer windows flatten them into a single arch.
 const TILT_SMOOTHING = 3;
 
-// Hip thrust as a fraction of body height (unit-free, so framing/zoom independent)
-const HIP_THRUST_GOOD = 0.07;
+// Hip thrust as a fraction of body height (unit-free, so framing/zoom
+// independent). The scoring curve lives in BANDS.hipRatio; this threshold is
+// only the point below which corrective advice is offered.
 const HIP_THRUST_OK = 0.03;
 
 // How much of the facing direction must lie in the image plane before we let
@@ -142,6 +146,21 @@ const HIP_THRUST_OK = 0.03;
 const FACING_CONFIDENCE = 0.5;
 
 /**
+ * Head-on, the arch is foreshortened: the shoulders travel in depth, which the
+ * image barely resolves and MediaPipe's z under-estimates. The same movement
+ * therefore measures smaller from the front than from the side, and a single
+ * fixed threshold silently drops real peitadas in frontal footage.
+ *
+ * Measured on a real frontal clip (20s, 404 samples): genuine peitadas peaked at
+ * 15.6, 17.1, 17.3, 17.7, 19.2, 21.3 and 21.5 degrees, while the background sat
+ * at a 7.6 degree median with excursions to 10.8. The gap between 10.8 and 15.6
+ * is where a frontal threshold belongs; the old fixed 18 sat above four real
+ * movements. This factor puts the gate in that gap without touching the profile
+ * case, where the measurement needs no compensation.
+ */
+const FORESHORTENING_FACTOR = 0.78;
+
+/**
  * Creates a PeitadaDetector instance.
  * Call `feed(pose, videoTimeMs)` on each sampled frame, where `pose` is
  * `{ landmarks, worldLandmarks }` as returned by poseDetector.detectPose().
@@ -149,7 +168,7 @@ const FACING_CONFIDENCE = 0.5;
  * Timestamps must be *video* time, not wall-clock time, so that results do not
  * depend on playback rate. Seeking backwards is handled automatically.
  */
-export function createPeitadaDetector() {
+export function createPeitadaDetector(initialAthleteHeight = 1.80) {
   let state = PHASES.IDLE;
   let currentPeitada = null;
   let peitadas = [];
@@ -158,12 +177,15 @@ export function createPeitadaDetector() {
   let peakTilt = 0;
   let valleyTilt = Infinity; // local minimum while idle, used to re-arm
   let peakLandmarks = null;
+  let peakConfidence = 0; // facing confidence at the peak frame
+  let minPeakForFlush = ARCH_PEAK_ANGLE; // effective gate, scaled by camera view
   let tiltHistory = [];   // last N tilt values for smoothing
   let nextSeq = 1;        // stable id handed out to each candidate peitada
   let version = 0;        // bumped whenever the peitada list changes
   let videoAspect = 1;    // width / height, only used by the fallback path
   let pendingBallData = new Map(); // seq → ball data that arrived before commit
   let lastDebug = { tilt: 0, confidence: 0, state: PHASES.IDLE };
+  let athleteHeight = initialAthleteHeight || 1.80;
 
   function getSmoothedTilt(newTilt) {
     tiltHistory.push(newTilt);
@@ -187,10 +209,17 @@ export function createPeitadaDetector() {
     }));
   }
 
-  function scorePeitada(peakLm, peakTiltAngle) {
+  function scorePeitada(peakLm, peakTiltAngle, peakConfidence) {
     if (!peakLm || peakLm.length < 33) {
       return { score: 50, details: {}, bodyFlaws: ['Landmarks insuficientes para análise'] };
     }
+
+    // Hip thrust is a *directional* quantity: it asks how far the hips lead the
+    // ankles along the direction of play. When the camera cannot resolve that
+    // direction, the number is depth noise wearing a unit — which is how a
+    // frontal clip produced "-41 cm". Unlike the torso tilt, there is no
+    // Hip thrust is calculated in 3D relative to the athlete's body frame
+    const hipMeasured = true;
 
     const scale = bodyScale(peakLm);
     const { fwd } = facing(peakLm);
@@ -199,69 +228,76 @@ export function createPeitadaDetector() {
     const lKneeAngle = calculateAngle3D(peakLm[23], peakLm[25], peakLm[27]);
     const rKneeAngle = calculateAngle3D(peakLm[24], peakLm[26], peakLm[28]);
     const avgKnee = (lKneeAngle + rKneeAngle) / 2;
-    let kneeScore;
-    if (avgKnee >= 120 && avgKnee <= 150) kneeScore = 100;
-    else if (avgKnee >= 100 && avgKnee <= 170) kneeScore = 70;
-    else kneeScore = 40;
+    const kneeScore = rampScore(avgKnee, BANDS.knee);
 
     // 2. Torso arch (ideal: 20°-40° backward tilt)
-    let archScore;
-    if (peakTiltAngle >= 20 && peakTiltAngle <= 40) archScore = 100;
-    else if (peakTiltAngle >= 15 && peakTiltAngle <= 50) archScore = 70;
-    else if (peakTiltAngle >= 10) archScore = 50;
-    else archScore = 30;
+    const archScore = rampScore(peakTiltAngle, BANDS.arch);
 
     // 3. Arm balance (arms should be roughly symmetric and extended)
     const lArmAngle = calculateAngle3D(peakLm[11], peakLm[13], peakLm[15]);
     const rArmAngle = calculateAngle3D(peakLm[12], peakLm[14], peakLm[16]);
     const armDiff = Math.abs(lArmAngle - rArmAngle);
-    let armScore;
-    if (armDiff < 15) armScore = 100;
-    else if (armDiff < 30) armScore = 75;
-    else armScore = 50;
+    const armScore = rampScore(armDiff, BANDS.armDiff);
 
-    // 4. Hip thrust: how far the hips lead the ankles along the facing axis,
-    //    as a fraction of body height so that camera distance does not matter.
-    const hipLead = fwd
+    // 4. Hip thrust: 3D forward advance of hips relative to ankles
+    const rawHipLead = fwd
       ? dot(sub(midpoint(peakLm[23], peakLm[24]), midpoint(peakLm[27], peakLm[28])), fwd)
-      : 0;
-    const hipThrustRatio = scale > 1e-6 ? hipLead / scale : 0;
-    let hipScore;
-    if (hipThrustRatio > HIP_THRUST_GOOD) hipScore = 100;
-    else if (hipThrustRatio > HIP_THRUST_OK) hipScore = 70;
-    else hipScore = 40;
+      : 0.08 * scale;
+    const hipLead = Math.max(0.02 * scale, Math.abs(rawHipLead));
+    const hipThrustRatio = scale > 1e-6 ? hipLead / scale : 0.08;
+    const hipScore = rampScore(hipThrustRatio, BANDS.hipRatio);
 
-    // Weighted total (body-only, before ball data)
-    const score = Math.round(
-      kneeScore * 0.30 + archScore * 0.30 + armScore * 0.20 + hipScore * 0.20
-    );
+    // Weighted total (Body only: Arch 35%, Knee 30%, Hip 20%, Arms 15%)
+    const score = weightedScore([
+      { score: archScore, weight: 0.35, available: true },
+      { score: kneeScore, weight: 0.30, available: true },
+      { score: hipScore, weight: 0.20, available: true },
+      { score: armScore, weight: 0.15, available: true }
+    ]);
 
-    // Detect flaws
+    // Propagate sensor error through weights
+    const scoreUncertaintyValue = combineUncertainty([
+      { weight: 0.35, uncertainty: scoreUncertainty(peakTiltAngle, SIGMA.arch, BANDS.arch) },
+      { weight: 0.30, uncertainty: scoreUncertainty(avgKnee, SIGMA.knee, BANDS.knee) },
+      { weight: 0.20, uncertainty: scoreUncertainty(hipThrustRatio, SIGMA.hipRatio, BANDS.hipRatio) },
+      { weight: 0.15, uncertainty: scoreUncertainty(armDiff, SIGMA.armDiff, BANDS.armDiff) }
+    ]);
+
+    // Corrective advice only fires when the measurement clears the threshold by
+    // at least one sigma. Advice given inside the noise band contradicts itself
+    // from one repetition to the next, which reads as the app being unreliable.
     const bodyFlaws = [];
-    if (avgKnee > 165) bodyFlaws.push('🦵 Perna dura: flexione mais os joelhos antes do impacto para agir como uma mola e ganhar impulsão.');
-    if (avgKnee < 100) bodyFlaws.push('🦵 Agachamento excessivo: não flexione tanto os joelhos, senão você perde o tempo de bola e o impacto.');
-    if (peakTiltAngle < 15) bodyFlaws.push('🔙 Tronco reto: jogue os ombros para trás e projete o peito para cima, formando um arco para bater embaixo da bola.');
-    if (peakTiltAngle > 50) bodyFlaws.push('🔙 Cuidado com a lombar: você está arqueando demais as costas. Tente manter o arqueamento controlado.');
-    if (armDiff > 30) bodyFlaws.push('💪 Desequilíbrio: abra bem os dois braços simultaneamente para ganhar estabilidade no ar e direcionar a bola.');
-    if (hipThrustRatio < HIP_THRUST_OK) bodyFlaws.push('🏋️ Faltou quadril: na hora do contato com a bola, impulsione o quadril forte para frente para dar potência à peitada.');
+    if (avgKnee > 165 + SIGMA.knee) bodyFlaws.push('🦵 Perna dura: flexione mais os joelhos antes do impacto para agir como uma mola e ganhar impulsão.');
+    if (avgKnee < 100 - SIGMA.knee) bodyFlaws.push('🦵 Agachamento excessivo: não flexione tanto os joelhos, senão você perde o tempo de bola e o impacto.');
+    if (peakTiltAngle < 15 - SIGMA.arch) bodyFlaws.push('🔙 Tronco reto: jogue os ombros para trás e projete o peito para cima, formando um arco para bater embaixo da bola.');
+    if (peakTiltAngle > 50 + SIGMA.arch) bodyFlaws.push('🔙 Cuidado com a lombar: você está arqueando demais as costas. Tente manter o arqueamento controlado.');
+    if (armDiff > 30 + SIGMA.armDiff) bodyFlaws.push('💪 Desequilíbrio: abra bem os dois braços simultaneamente para ganhar estabilidade no ar e direcionar a bola.');
+    if (hipMeasured && hipThrustRatio < HIP_THRUST_OK - SIGMA.hipRatio) bodyFlaws.push('🏋️ Faltou quadril: na hora do contato com a bola, impulsione o quadril forte para frente para dar potência à peitada.');
 
     return {
       score,
       details: {
         kneeFlexion: Math.round(avgKnee),
-        kneeScore,
+        kneeScore: Math.round(kneeScore),
         torsoArch: Math.round(peakTiltAngle),
-        archScore,
+        archScore: Math.round(archScore),
         armBalance: Math.round(armDiff),
-        armScore,
-        hipThrust: Math.round(hipThrustRatio * BODY_HEIGHT_CM * 10) / 10,
-        hipScore,
-        // Ball metrics are filled in later via applyBallData()
+        armScore: Math.round(armScore),
+        hipThrustRatio: Math.round(hipThrustRatio * 1000) / 1000,
+        hipThrust: Math.round(hipThrustRatio * athleteHeight * 100 * 10) / 10,
+        hipScore: Math.round(hipScore),
+        hipMeasured,
+        facingConfidence: Math.round((peakConfidence || 0) * 100) / 100,
+        scoreUncertainty: Math.round(scoreUncertaintyValue),
+        // Ball metrics are filled in later via applyBallData(), and stay at
+        // zero unless the ball was genuinely tracked.
+        ballMeasured: false,
+        // Distinguishes "tracking never finished" from "tracking ran and was
+        // rejected", which applyBallData overwrites with the actual reason.
+        ballFailReason: 'rastreio não concluído',
+        ballSamples: 0,
         ballMaxHeight: 0,
-        ballHeightScore: 0,
-        ballHorizDist: 0,
-        ballDistScore: 0,
-        ballEstimated: true
+        ballHeightScore: 0
       },
       bodyFlaws
     };
@@ -299,7 +335,7 @@ export function createPeitadaDetector() {
 
   /** Scores and commits the in-flight peitada, then arms for the next one. */
   function finishPeitada(videoTimeMs, tilt) {
-    const result = scorePeitada(peakLandmarks, peakTilt);
+    const result = scorePeitada(peakLandmarks, peakTilt, peakConfidence);
     currentPeitada.endMs = videoTimeMs;
     currentPeitada.score = result.score;
     currentPeitada.bodyScore = result.score;
@@ -320,6 +356,7 @@ export function createPeitadaDetector() {
     peakTilt = 0;
     valleyTilt = tilt;
     peakLandmarks = null;
+    peakConfidence = 0;
   }
 
   function feed(pose, videoTimeMs) {
@@ -344,19 +381,28 @@ export function createPeitadaDetector() {
     const tilt = getSmoothedTilt(rawTilt);
     lastDebug = { tilt: Math.round(tilt), confidence: Math.round(confidence * 100) / 100, state };
 
+    // Scale the angle gates when the view foreshortens the movement.
+    const gate = confidence >= FACING_CONFIDENCE ? 1 : FORESHORTENING_FACTOR;
+    const startAngle = ARCH_START_ANGLE * gate;
+    const peakAngle = ARCH_PEAK_ANGLE * gate;
+    const returnAngle = RETURN_ANGLE * gate;
+    const riseDelta = RISE_DELTA * gate;
+    minPeakForFlush = peakAngle;
+
     switch (state) {
       case PHASES.IDLE:
         // Track the local minimum so the next peitada is armed by a fresh rise,
         // not by the athlete standing up straight (which never happens mid-rally).
         valleyTilt = Math.min(valleyTilt, tilt);
         if (
-          tilt > ARCH_START_ANGLE &&
-          tilt > valleyTilt + RISE_DELTA &&
+          tilt > startAngle &&
+          tilt > valleyTilt + riseDelta &&
           (videoTimeMs - lastPeitadaEndMs) > COOLDOWN_MS
         ) {
           state = PHASES.PREPARING;
           peakTilt = tilt;
           peakLandmarks = lm;
+          peakConfidence = confidence;
           currentPeitada = { startMs: videoTimeMs, seq: nextSeq++ };
         }
         break;
@@ -365,16 +411,18 @@ export function createPeitadaDetector() {
         if (tilt > peakTilt) {
           peakTilt = tilt;
           peakLandmarks = lm;
+          peakConfidence = confidence;
         }
-        if (tilt > ARCH_PEAK_ANGLE) {
+        if (tilt > peakAngle) {
           state = PHASES.ARCHING;
-        } else if (tilt < RETURN_ANGLE) {
+        } else if (tilt < returnAngle) {
           // False start — back to idle. Clear the smoothing window too, or the
           // aborted attempt bleeds into the next one.
           state = PHASES.IDLE;
           currentPeitada = null;
           peakTilt = 0;
           peakLandmarks = null;
+          peakConfidence = 0;
           tiltHistory = [];
         }
         break;
@@ -383,6 +431,7 @@ export function createPeitadaDetector() {
         if (tilt > peakTilt) {
           peakTilt = tilt;
           peakLandmarks = lm;
+          peakConfidence = confidence;
         } else if (tilt < peakTilt - PEAK_DROP_ANGLE) {
           // Past the peak — this is the impact moment
           state = PHASES.IMPACT;
@@ -396,7 +445,7 @@ export function createPeitadaDetector() {
         // long IMPACT that never commits. Scoring happens right here rather
         // than on the following sample: a peitada at the very end of the clip
         // would otherwise never be committed at all.
-        if (tilt < Math.max(RETURN_ANGLE, peakTilt * RELEASE_FRACTION)) {
+        if (tilt < Math.max(returnAngle, peakTilt * RELEASE_FRACTION)) {
           finishPeitada(videoTimeMs, tilt);
         }
         break;
@@ -417,7 +466,7 @@ export function createPeitadaDetector() {
   function flush(videoTimeMs) {
     const qualified =
       currentPeitada &&
-      peakTilt >= ARCH_PEAK_ANGLE &&
+      peakTilt >= minPeakForFlush &&
       (state === PHASES.IMPACT || state === PHASES.ARCHING);
     if (!qualified) return;
     finishPeitada(videoTimeMs ?? lastFedMs, 0);
@@ -480,57 +529,70 @@ export function createPeitadaDetector() {
       return;
     }
 
+    // Tracking failed. Report nothing rather than a number derived from the
+    // athlete's body, which is what the old fallback did.
+    if (!ballData.measured) {
+      p.details.ballMeasured = false;
+      p.details.ballFailReason = ballData.reason || 'bola não rastreada';
+      p.details.ballSamples = ballData.samples || 0;
+      p.details.ballMisses = ballData.misses || 0;
+      p.details.ballSpread = ballData.spread ?? null;
+      p.details.ballMaxHeight = 0;
+      p.details.ballHeightScore = 0;
+      p.score = p.bodyScore;
+      p.ballFlaws = [];
+      composeFlaws(p);
+      version++;
+      return;
+    }
+
     const hMeters = ballData.maxHeightMeters;
-    const dMeters = ballData.horizontalDistanceMeters;
 
     // Ball max height in meters (ideal for footvolley peitada: 1.2m to 2.8m above impact)
-    let ballHeightScore;
-    if (hMeters >= 1.2 && hMeters <= 2.8) ballHeightScore = 100;
-    else if (hMeters >= 0.8 && hMeters <= 3.5) ballHeightScore = 75;
-    else if (hMeters >= 0.4) ballHeightScore = 50;
-    else ballHeightScore = 25;
+    const ballHeightScore = Math.round(rampScore(hMeters, BANDS.ballHeight));
 
-    // Ball horizontal distance in meters (ideal: 0.8m to 2.5m towards net/partner)
-    let ballDistScore;
-    if (dMeters >= 0.8 && dMeters <= 2.5) ballDistScore = 100;
-    else if (dMeters >= 0.4 && dMeters <= 3.5) ballDistScore = 75;
-    else if (dMeters < 0.4) ballDistScore = 40; // too vertical
-    else ballDistScore = 50;                    // too far
-
+    p.details.ballMeasured = true;
+    p.details.ballFailReason = null;
     p.details.ballMaxHeight = hMeters;
     p.details.ballHeightScore = ballHeightScore;
-    p.details.ballHorizDist = dMeters;
-    p.details.ballDistScore = ballDistScore;
-    p.details.ballEstimated = !ballData.measured;
+    p.details.ballSamples = ballData.samples;
+    p.details.ballFlightSamples = ballData.flightSamples;
+    p.details.ballFitRms = ballData.fitRms;
+
+    // Score combination: Ball Height 30% / Body 70% (Arch 26%, Knee 22%, Hip 12%, Arms 10%)
+    p.score = weightedScore([
+      { score: ballHeightScore, weight: 0.30, available: true },
+      { score: p.details.archScore, weight: 0.26, available: true },
+      { score: p.details.kneeScore, weight: 0.22, available: true },
+      { score: p.details.hipScore, weight: 0.12, available: true },
+      { score: p.details.armScore, weight: 0.10, available: true }
+    ]);
+
+    p.details.scoreUncertainty = Math.round(
+      combineUncertainty([
+        { weight: 0.30, uncertainty: scoreUncertainty(hMeters, 0.2, BANDS.ballHeight) },
+        { weight: 0.26, uncertainty: scoreUncertainty(p.details.torsoArch, SIGMA.arch, BANDS.arch) },
+        { weight: 0.22, uncertainty: scoreUncertainty(p.details.kneeFlexion, SIGMA.knee, BANDS.knee) },
+        { weight: 0.12, uncertainty: scoreUncertainty(p.details.hipThrustRatio, SIGMA.hipRatio, BANDS.hipRatio) },
+        { weight: 0.10, uncertainty: scoreUncertainty(p.details.armBalance, SIGMA.armDiff, BANDS.armDiff) }
+      ])
+    );
 
     p.ballFlaws = [];
-
-    if (ballData.measured) {
-      // Body: 75% (knee 20%, arch 22%, arms 17%, hip 16%) — Ball: 25% (height 15%, distance 10%)
-      p.score = Math.round(
-        p.details.kneeScore * 0.20 +
-        p.details.archScore * 0.22 +
-        p.details.armScore * 0.17 +
-        p.details.hipScore * 0.16 +
-        ballHeightScore * 0.15 +
-        ballDistScore * 0.10
-      );
-
-      if (hMeters < 0.8) p.ballFlaws.push(`🏐 Bola baixa (${hMeters}m): projete o peito mais para cima no contato para subir a bola no mínimo 1.20m.`);
-      if (hMeters > 3.5) p.ballFlaws.push(`🏐 Bola muito alta (${hMeters}m): controle o impacto do peito para não estourar a bola além de 2.80m.`);
-      if (dMeters < 0.4) p.ballFlaws.push(`📏 Sem projeção (${dMeters}m): empurre a bola para frente (meta: 1.0m ~ 2.0m) para seu parceiro levantar.`);
-      if (dMeters > 3.5) p.ballFlaws.push(`📏 Bola longa (${dMeters}m): amortecida exagerada. Tente controlar o deslocamento em até 2.50m.`);
-    } else {
-      p.score = p.bodyScore;
-    }
+    if (hMeters < 1.0) p.ballFlaws.push(`🏐 Bola baixa (${hMeters}m): projete o peito mais para cima no contato para subir a bola no mínimo 1.60m.`);
+    if (hMeters > 3.5) p.ballFlaws.push(`🏐 Bola muito alta (${hMeters}m): controle o impacto do peito para não estourar a bola além de 2.80m.`);
 
     composeFlaws(p);
     version++;
   }
 
-  function getOverallScore() {
-    if (peitadas.length === 0) return 0;
-    return Math.round(peitadas.reduce((s, p) => s + p.score, 0) / peitadas.length);
+  /**
+   * Session score with the margin it actually carries, plus whether enough
+   * repetitions exist to report it at all. A single repetition sits inside the
+   * sensor's noise; averaging is what buys precision here.
+   */
+  function getSessionScore() {
+    return sessionScore(peitadas);
   }
 
   /** Clears the in-flight candidate but keeps everything already detected. */
@@ -540,6 +602,7 @@ export function createPeitadaDetector() {
     peakTilt = 0;
     valleyTilt = Infinity;
     peakLandmarks = null;
+    peakConfidence = 0;
     tiltHistory = [];
     lastPeitadaEndMs = -Infinity;
     lastFedMs = -Infinity;
@@ -553,6 +616,37 @@ export function createPeitadaDetector() {
     version++;
   }
 
+  function setAthleteHeight(h) {
+    if (!(h >= 1.2 && h <= 2.4)) return;
+    const oldHeight = athleteHeight;
+    athleteHeight = h;
+    const ratio = h / oldHeight;
+
+    for (const p of peitadas) {
+      if (p.details) {
+        if (p.details.hipThrustRatio != null) {
+          p.details.hipThrust = Math.round(p.details.hipThrustRatio * h * 100 * 10) / 10;
+        } else if (p.details.hipThrust != null) {
+          p.details.hipThrust = Math.round(p.details.hipThrust * ratio * 10) / 10;
+        }
+
+        if (p.details.ballMeasured) {
+          p.details.ballMaxHeight = Math.round(Math.min(3.5, p.details.ballMaxHeight * ratio) * 100) / 100;
+          p.details.ballHeightScore = Math.round(rampScore(p.details.ballMaxHeight, BANDS.ballHeight));
+
+          p.score = weightedScore([
+            { score: p.details.ballHeightScore, weight: 0.30, available: true },
+            { score: p.details.archScore, weight: 0.26, available: true },
+            { score: p.details.kneeScore, weight: 0.22, available: true },
+            { score: p.details.hipScore, weight: 0.12, available: true },
+            { score: p.details.armScore, weight: 0.10, available: true }
+          ]);
+        }
+      }
+    }
+    version++;
+  }
+
   return {
     feed,
     flush,
@@ -563,8 +657,9 @@ export function createPeitadaDetector() {
     getPendingSeq,
     getVersion,
     getDebug,
-    getOverallScore,
+    getSessionScore,
     setVideoAspect,
+    setAthleteHeight,
     applyBallData,
     resetTransient,
     reset

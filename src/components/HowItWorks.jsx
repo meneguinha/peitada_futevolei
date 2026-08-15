@@ -21,33 +21,33 @@ const METRICS = [
     color: 'var(--primary)',
     textColor: 'var(--primary)',
     label: 'Arco do tronco',
-    ideal: '20° a 40°',
-    weight: '30%',
-    text: 'Ângulo entre o tronco (quadril → ombros) e a vertical. É o que dispara a detecção: abaixo de 18° no pico o movimento não conta como peitada.'
+    ideal: '23° a 40°',
+    weight: '35% (26% c/ bola)',
+    text: 'Ângulo entre o tronco (quadril → ombros) e a vertical. Inclinação dorsal e projeção peitoral para direcionar a bola para cima.'
   },
   {
     color: 'var(--secondary)',
     textColor: 'var(--secondary-text)',
     label: 'Flexão do joelho',
     ideal: '120° a 150°',
-    weight: '30%',
-    text: 'Ângulo no joelho entre a coxa e a canela. Perna dura demais não vira mola; agachar demais tira o tempo de bola.'
+    weight: '30% (22% c/ bola)',
+    text: 'Ângulo no joelho entre a coxa e a canela. Atua como mola na areia para amortecer a descida e dar impulsão no contato.'
+  },
+  {
+    color: 'var(--warning)',
+    textColor: 'var(--warning-text)',
+    label: 'Avanço do quadril',
+    ideal: '~14 a 26 cm (0.08h a 0.16h)',
+    weight: '20% (12% c/ bola)',
+    text: 'Projeção pélvica para frente no momento do impacto para gerar potência e altura na subida da bola.'
   },
   {
     color: 'var(--success)',
     textColor: 'var(--success-text)',
     label: 'Simetria dos braços',
     ideal: 'diferença < 15°',
-    weight: '20%',
-    text: 'Compara o ângulo do cotovelo esquerdo com o do direito. Braços abertos por igual dão estabilidade no ar.'
-  },
-  {
-    color: 'var(--warning)',
-    textColor: 'var(--warning-text)',
-    label: 'Avanço do quadril',
-    ideal: 'acima de ~10 cm',
-    weight: '20%',
-    text: 'O quanto o quadril passa à frente dos tornozelos no sentido em que você joga. Medido como fração da sua altura, então distância da câmera e zoom não alteram o número.'
+    weight: '15% (10% c/ bola)',
+    text: 'Abertura simultânea e simétrica dos braços para estabilização postural no ar e equilíbrio do tronco.'
   }
 ];
 
@@ -167,12 +167,11 @@ export default function HowItWorks() {
           </p>
         </div>
         <div style={{ flex: 1, minWidth: 260 }}>
-          <p className="font-semibold text-sm" style={{ marginBottom: 4 }}>Números de bola com “≈” são estimativa</p>
+          <p className="font-semibold text-sm" style={{ marginBottom: 4 }}>A bola tem peso decisivo no resultado</p>
           <p className="text-sm text-muted">
-            Quando a bola não é rastreada de fato, altura e distância aparecem esmaecidas com “≈”: são
-            deduzidas do seu corpo, não medidas. Nesse caso elas <strong style={{ color: 'var(--text)' }}>não
-            entram na nota</strong> — só as quatro medidas acima contam. Rastreada de verdade, a bola
-            vale 25% do score.
+            A altura da bola vem do rastreamento balístico da trajetória e validação física contra a gravidade (9,8 m/s²).
+            Quando medida com sucesso, a <strong>altura da bola compõe 30% da nota final</strong> (faixa ideal: 1,80m a 2,80m acima do contato).
+            Se o rastreio falhar, os campos exibem <strong style={{ color: 'var(--text)' }}>“—”</strong> e a nota passa a considerar 100% a postura biomecânica.
           </p>
         </div>
       </div>

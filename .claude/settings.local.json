@@ -10,7 +10,27 @@
       "Bash(rm -f src/components/Pose3DViewer.jsx)",
       "Bash(sed -i '/peakMetric = measured\\\\.metric;/d' src/utils/peitadaDetector.js)",
       "mcp__Claude_Preview__preview_start",
-      "PowerShell(Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; Start-Sleep -Milliseconds 800; if \\(Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue\\) { \"ainda ocupada\" } else { \"porta 5173 livre\" })"
+      "PowerShell(Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; Start-Sleep -Milliseconds 800; if \\(Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue\\) { \"ainda ocupada\" } else { \"porta 5173 livre\" })",
+      "WebSearch",
+      "WebFetch(domain:pmc.ncbi.nlm.nih.gov)",
+      "WebFetch(domain:www.sciencedirect.com)",
+      "WebFetch(domain:www.scielo.br)",
+      "WebFetch(domain:efdeportes.com)",
+      "WebFetch(domain:www.rbceonline.org.br)",
+      "WebFetch(domain:ojs.revistacontemporanea.com)",
+      "WebFetch(domain:repositorio.unifesp.br)",
+      "WebFetch(domain:revistajrg.com)",
+      "WebFetch(domain:www.periodicos.rc.biblioteca.unesp.br)",
+      "WebFetch(domain:pubmed.ncbi.nlm.nih.gov)",
+      "WebFetch(domain:www.researchgate.net)",
+      "WebFetch(domain:article.sapub.org)",
+      "WebFetch(domain:www.tandfonline.com)",
+      "Bash(python -)",
+      "Bash(npm test *)",
+      "Bash(Select-String -Pattern \"PASSARAM|CHECK\")",
+      "Bash(npx oxlint *)",
+      "PowerShell(npm test 2>&1)",
+      "PowerShell(npx vite build 2>&1)"
     ]
   }
 }
